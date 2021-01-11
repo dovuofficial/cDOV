@@ -48,6 +48,8 @@ async function setupContracts() {
 }
 
 // https://eips.ethereum.org/EIPS/eip-2612
+// Test cases as in:
+// https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/test/drafts/ERC20Permit.test.js
 describe('UFragments:Initialization', () => {
   before('setup UFragments contract', setupContracts)
 
