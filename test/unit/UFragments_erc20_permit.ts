@@ -3,11 +3,11 @@ import { Contract, Signer, Wallet, BigNumber } from 'ethers'
 import { expect } from 'chai'
 
 import {
-  sign,
   EIP712_DOMAIN_TYPEHASH,
-  PERMIT_TYPEHASH,
+  EIP2612_PERMIT_TYPEHASH,
   getPermitDigest,
   getDomainSeparator,
+  signEIP712Permission,
 } from '../utils/signatures'
 
 const ETHEREUM_CHAIN_ID = 1
@@ -54,7 +54,7 @@ describe('UFragments:Initialization', () => {
   it('should set the EIP2612 parameters', async function () {
     expect(await uFragments.EIP712_REVISION()).to.eq('0x31')
     expect(await uFragments.EIP712_DOMAIN()).to.eq(EIP712_DOMAIN_TYPEHASH)
-    expect(await uFragments.PERMIT_TYPEHASH()).to.eq(PERMIT_TYPEHASH)
+    expect(await uFragments.PERMIT_TYPEHASH()).to.eq(EIP2612_PERMIT_TYPEHASH)
     // with hard-coded parameters
     expect(await uFragments.DOMAIN_SEPARATOR()).to.eq(
       getDomainSeparator(
@@ -89,19 +89,18 @@ describe('UFragments:EIP-2612 Permit', () => {
       nonce: number,
       deadline: BigNumber,
     ) => {
-      const digest = getPermitDigest(
+      return signEIP712Permission(
         EIP712_REVISION,
         TOKEN_NAME,
         ETHEREUM_AMPL_ADDRESS,
         ETHEREUM_CHAIN_ID,
+        signer,
         owner,
         spender,
         value,
         nonce,
         deadline,
       )
-
-      return sign(digest, signer.privateKey)
     }
 
     it('accepts owner signature', async function () {

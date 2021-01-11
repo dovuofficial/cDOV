@@ -4,22 +4,10 @@ import {
   defaultAbiCoder,
   toUtf8Bytes,
   solidityPack,
+  splitSignature,
 } from 'ethers/lib/utils'
 import { ecsign } from 'ethereumjs-util'
-import { BigNumberish } from 'ethers'
-
-export const sign = (digest: any, privateKey: any) => {
-  return ecsign(
-    Buffer.from(digest.slice(2), 'hex'),
-    Buffer.from(privateKey.slice(2), 'hex'),
-  )
-}
-
-export const PERMIT_TYPEHASH = keccak256(
-  toUtf8Bytes(
-    'Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)',
-  ),
-)
+import { BigNumberish, Wallet } from 'ethers'
 
 export const EIP712_DOMAIN_TYPEHASH = keccak256(
   toUtf8Bytes(
@@ -27,10 +15,52 @@ export const EIP712_DOMAIN_TYPEHASH = keccak256(
   ),
 )
 
+export const EIP712_DOMAIN_TYPE = [
+  { name: 'name', type: 'string' },
+  { name: 'version', type: 'string' },
+  { name: 'chainId', type: 'uint256' },
+  { name: 'verifyingContract', type: 'address' },
+]
+
+export const EIP2612_PERMIT_TYPEHASH = keccak256(
+  toUtf8Bytes(
+    'Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)',
+  ),
+)
+
+export const EIP2612_PERMIT_TYPE = [
+  { name: 'owner', type: 'address' },
+  { name: 'spender', type: 'address' },
+  { name: 'value', type: 'uint256' },
+  { name: 'nonce', type: 'uint256' },
+  { name: 'deadline', type: 'uint256' },
+]
+
+// Gets the EIP712 domain separator
+export function getDomainSeparator(
+  version: string,
+  name: string,
+  contractAddress: string,
+  chainId: number,
+) {
+  return keccak256(
+    defaultAbiCoder.encode(
+      ['bytes32', 'bytes32', 'bytes32', 'uint256', 'address'],
+      [
+        EIP712_DOMAIN_TYPEHASH,
+        keccak256(toUtf8Bytes(name)),
+        keccak256(toUtf8Bytes(version)),
+        chainId,
+        contractAddress,
+      ],
+    ),
+  )
+}
+
 // Returns the EIP712 hash which should be signed by the user
 // in order to make a call to `permit`
 export function getPermitDigest(
-  versionNumber: string,
+  version: string,
   name: string,
   address: string,
   chainId: number,
@@ -40,16 +70,11 @@ export function getPermitDigest(
   nonce: number,
   deadline: BigNumberish,
 ) {
-  const DOMAIN_SEPARATOR = getDomainSeparator(
-    versionNumber,
-    name,
-    address,
-    chainId,
-  )
+  const DOMAIN_SEPARATOR = getDomainSeparator(version, name, address, chainId)
   const permitHash = keccak256(
     defaultAbiCoder.encode(
       ['bytes32', 'address', 'address', 'uint256', 'uint256', 'uint256'],
-      [PERMIT_TYPEHASH, owner, spender, value, nonce, deadline],
+      [EIP2612_PERMIT_TYPEHASH, owner, spender, value, nonce, deadline],
     ),
   )
   const hash = keccak256(
@@ -61,23 +86,36 @@ export function getPermitDigest(
   return hash
 }
 
-// Gets the EIP712 domain separator
-export function getDomainSeparator(
-  versionNumber: string,
+export const signEIP712Permission = async (
+  version: string,
   name: string,
-  contractAddress: string,
+  verifyingContract: string,
   chainId: number,
-) {
-  return keccak256(
-    defaultAbiCoder.encode(
-      ['bytes32', 'bytes32', 'bytes32', 'uint256', 'address'],
-      [
-        EIP712_DOMAIN_TYPEHASH,
-        keccak256(toUtf8Bytes(name)),
-        keccak256(toUtf8Bytes(versionNumber)),
-        chainId,
-        contractAddress,
-      ],
-    ),
-  )
+  signer: Wallet,
+  owner: string,
+  spender: string,
+  value: number,
+  nonce: number,
+  deadline: BigNumberish,
+) => {
+  const domain = {
+    name,
+    version,
+    chainId,
+    verifyingContract,
+  }
+
+  const types = { Permit: EIP2612_PERMIT_TYPE }
+
+  const data = {
+    owner,
+    spender,
+    value,
+    nonce,
+    deadline,
+  }
+
+  const signature = await signer._signTypedData(domain, types, data)
+
+  return splitSignature(signature)
 }
