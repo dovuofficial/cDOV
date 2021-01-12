@@ -459,14 +459,12 @@ describe('UFragments:Transfer', function () {
     })
   })
 
-  describe('deployer transfers the rest to C', async function () {
+  describe('deployer transfersAll to C', async function () {
     it('should have balances [0,973]', async function () {
       const deployerBefore = await uFragments.balanceOf(
         await deployer.getAddress(),
       )
-      await uFragments
-        .connect(deployer)
-        .transfer(await C.getAddress(), deployerBefore)
+      await uFragments.connect(deployer).transferAll(await C.getAddress())
       expect(await uFragments.balanceOf(await deployer.getAddress())).to.eq(0)
       expect(await uFragments.balanceOf(await C.getAddress())).to.eq(
         deployerBefore,
@@ -479,6 +477,11 @@ describe('UFragments:Transfer', function () {
       await expect(
         uFragments.connect(A).transfer(uFragments.address, unitTokenAmount),
       ).to.be.reverted
+    })
+
+    it('reverts on transferAll', async function () {
+      await expect(uFragments.connect(A).transferAll(uFragments.address)).to.be
+        .reverted
     })
 
     it('reverts on transferFrom', async function () {
@@ -507,6 +510,12 @@ describe('UFragments:Transfer', function () {
           ethers.constants.AddressZero,
           transferAmount,
         )
+    })
+
+    it('reverts on transferAll', async function () {
+      await expect(
+        uFragments.connect(A).transferAll(ethers.constants.AddressZero),
+      ).to.be.reverted
     })
 
     it('transferFrom should fail', async function () {
