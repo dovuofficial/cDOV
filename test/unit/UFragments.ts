@@ -425,33 +425,36 @@ describe('UFragments:Transfer', function () {
     C = accounts[4]
   })
 
-  describe('deployer transfers 12 to A', function () {
+  describe('deployer transfers 120 to A', function () {
     it('should have correct balances', async function () {
       const deployerBefore = await uFragments.balanceOf(
         await deployer.getAddress(),
       )
       await uFragments
         .connect(deployer)
-        .transfer(await A.getAddress(), toUFrgDenomination('12'))
+        .transfer(await A.getAddress(), toUFrgDenomination('120'))
       expect(await uFragments.balanceOf(await deployer.getAddress())).to.eq(
-        deployerBefore.sub(toUFrgDenomination('12')),
+        deployerBefore.sub(toUFrgDenomination('120')),
       )
       expect(await uFragments.balanceOf(await A.getAddress())).to.eq(
-        toUFrgDenomination('12'),
+        toUFrgDenomination('120'),
       )
     })
   })
 
-  describe('deployer transfers 15 to B', async function () {
-    it('should have balances [973,15]', async function () {
-      const deployerBefore = await uFragments.balanceOf(
-        await deployer.getAddress(),
+  describe('A transfers 15 to B', async function () {
+    it('should have balances [105,15]', async function () {
+      expect(await uFragments.balanceOf(await A.getAddress())).to.eq(
+        toUFrgDenomination('120'),
+      )
+      expect(await uFragments.balanceOf(await B.getAddress())).to.eq(
+        toUFrgDenomination('0'),
       )
       await uFragments
-        .connect(deployer)
+        .connect(A)
         .transfer(await B.getAddress(), toUFrgDenomination('15'))
-      expect(await uFragments.balanceOf(await deployer.getAddress())).to.eq(
-        deployerBefore.sub(toUFrgDenomination('15')),
+      expect(await uFragments.balanceOf(await A.getAddress())).to.eq(
+        toUFrgDenomination('105'),
       )
       expect(await uFragments.balanceOf(await B.getAddress())).to.eq(
         toUFrgDenomination('15'),
@@ -459,15 +462,26 @@ describe('UFragments:Transfer', function () {
     })
   })
 
-  describe('deployer transfersAll to C', async function () {
-    it('should have balances [0,973]', async function () {
-      const deployerBefore = await uFragments.balanceOf(
-        await deployer.getAddress(),
+  describe('A transfersAll to C', async function () {
+    it('should have balances [0,105]', async function () {
+      expect(await uFragments.balanceOf(await A.getAddress())).to.eq(
+        toUFrgDenomination('105'),
       )
-      await uFragments.connect(deployer).transferAll(await C.getAddress())
-      expect(await uFragments.balanceOf(await deployer.getAddress())).to.eq(0)
       expect(await uFragments.balanceOf(await C.getAddress())).to.eq(
-        deployerBefore,
+        toUFrgDenomination('0'),
+      )
+      await expect(uFragments.connect(A).transferAll(await C.getAddress()))
+        .to.emit(uFragments, 'Transfer')
+        .withArgs(
+          await A.getAddress(),
+          await C.getAddress(),
+          toUFrgDenomination('105'),
+        )
+      expect(await uFragments.balanceOf(await A.getAddress())).to.eq(
+        toUFrgDenomination('0'),
+      )
+      expect(await uFragments.balanceOf(await C.getAddress())).to.eq(
+        toUFrgDenomination('105'),
       )
     })
   })
@@ -475,21 +489,21 @@ describe('UFragments:Transfer', function () {
   describe('when the recipient address is the contract address', function () {
     it('reverts on transfer', async function () {
       await expect(
-        uFragments.connect(A).transfer(uFragments.address, unitTokenAmount),
+        uFragments.connect(B).transfer(uFragments.address, unitTokenAmount),
       ).to.be.reverted
     })
 
     it('reverts on transferAll', async function () {
-      await expect(uFragments.connect(A).transferAll(uFragments.address)).to.be
+      await expect(uFragments.connect(B).transferAll(uFragments.address)).to.be
         .reverted
     })
 
     it('reverts on transferFrom', async function () {
       await expect(
         uFragments
-          .connect(A)
+          .connect(B)
           .transferFrom(
-            await A.getAddress(),
+            await B.getAddress(),
             uFragments.address,
             unitTokenAmount,
           ),
@@ -501,29 +515,37 @@ describe('UFragments:Transfer', function () {
     it('emits an approval event', async function () {
       await expect(
         uFragments
-          .connect(A)
+          .connect(B)
           .approve(ethers.constants.AddressZero, transferAmount),
       )
         .to.emit(uFragments, 'Approval')
         .withArgs(
-          await A.getAddress(),
+          await B.getAddress(),
           ethers.constants.AddressZero,
           transferAmount,
         )
     })
 
+    it('reverts on transfer', async function () {
+      await expect(
+        uFragments
+          .connect(B)
+          .transfer(ethers.constants.AddressZero, unitTokenAmount),
+      ).to.be.reverted
+    })
+
     it('reverts on transferAll', async function () {
       await expect(
-        uFragments.connect(A).transferAll(ethers.constants.AddressZero),
+        uFragments.connect(B).transferAll(ethers.constants.AddressZero),
       ).to.be.reverted
     })
 
     it('transferFrom should fail', async function () {
       await expect(
         uFragments
-          .connect(C)
+          .connect(B)
           .transferFrom(
-            await A.getAddress(),
+            await B.getAddress(),
             ethers.constants.AddressZero,
             unitTokenAmount,
           ),

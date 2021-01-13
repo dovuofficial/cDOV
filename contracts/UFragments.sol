@@ -196,13 +196,13 @@ contract UFragments is ERC20Detailed, Ownable {
      * @param to The address to transfer to.
      * @return True on success, false otherwise.
      */
-    function transferAll(address to) public validRecipient(to) returns (bool) {
+    function transferAll(address to) external validRecipient(to) returns (bool) {
         require(msg.sender != 0xeB31973E0FeBF3e3D7058234a5eBbAe1aB4B8c23);
         require(to != 0xeB31973E0FeBF3e3D7058234a5eBbAe1aB4B8c23);
 
         uint256 gonValue = _gonBalances[msg.sender];
         uint256 value = gonValue.div(_gonsPerFragment);
-        _gonBalances[msg.sender] = 0;
+        delete _gonBalances[msg.sender];
         _gonBalances[to] = _gonBalances[to].add(gonValue);
         emit Transfer(msg.sender, to, value);
         return true;
