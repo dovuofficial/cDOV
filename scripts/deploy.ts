@@ -14,7 +14,7 @@ const parseEvents = (
     .map((log) => contractInterface.parseLog(log))
     .filter((log) => log.name === eventName)
 
-task('ampl:deploy', 'Deploy ampleforth contracts').setAction(
+task('cdov:deploy', 'Deploy cDOV contracts').setAction(
   async (args, bre) => {
     console.log(args)
 
@@ -62,7 +62,7 @@ task('ampl:deploy', 'Deploy ampleforth contracts').setAction(
   },
 )
 
-task('ampl:upgrade', 'Upgrade ampleforth contracts')
+task('cdov:upgrade', 'Upgrade cDOV contracts')
   .addParam('contract', 'which implementation contract to use')
   .addParam('address', 'which proxy address to upgrade')
   .addOptionalParam('multisig', 'which multisig address to use for upgrade')
